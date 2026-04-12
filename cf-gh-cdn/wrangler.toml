@@ -1,0 +1,8 @@
+# Cloudflare Pages：静态资源目录 public，同级的 functions/ 自动作为 Pages Functions（Workers）挂载。
+# 本地：复制 .dev.vars.example 为 .dev.vars 并设置 GITHUB_TOKEN → npm install && npm run dev
+# 部署：npm run deploy；在控制台 Pages → 项目 → Settings → Environment variables
+#       或使用：npx wrangler pages secret put GITHUB_TOKEN --project-name=<你的项目名>
+#       变量名：GITHUB_TOKEN（对目标仓库有 contents 写权限的 PAT）
+name = "cf-gh-file-cdn"
+compatibility_date = "2026-04-01"
+pages_build_output_dir = "public"

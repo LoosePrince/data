@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GitHub 文件中转 · CDN 链接</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f1419;
+        --card: #1a2332;
+        --text: #e7edf5;
+        --muted: #8b9cb3;
+        --accent: #58a6ff;
+        --border: #2d3a4d;
+        --ok: #3fb950;
+        --err: #f85149;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f6f8fa;
+          --card: #fff;
+          --text: #1f2328;
+          --muted: #57606a;
+          --accent: #0969da;
+          --border: #d0d7de;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, "PingFang SC", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+      }
+      main {
+        max-width: 40rem;
+        margin: 0 auto;
+        padding: 2rem 1.25rem 3rem;
+      }
+      h1 {
+        font-size: 1.35rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem;
+      }
+      p.lead {
+        margin: 0 0 1.5rem;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      form {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem;
+        display: grid;
+        gap: 1rem;
+      }
+      label {
+        display: grid;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+      }
+      label span.hint {
+        font-weight: 400;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+      input[type="text"],
+      input[type="file"] {
+        width: 100%;
+        padding: 0.55rem 0.65rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font-size: 0.9rem;
+      }
+      input[type="file"] {
+        padding: 0.45rem;
+      }
+      button {
+        justify-self: start;
+        padding: 0.6rem 1.1rem;
+        border-radius: 8px;
+        border: none;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+      pre {
+        margin: 1.25rem 0 0;
+        padding: 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        font-size: 0.78rem;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+      pre.ok {
+        border-color: color-mix(in srgb, var(--ok) 40%, var(--border));
+      }
+      pre.err {
+        border-color: color-mix(in srgb, var(--err) 40%, var(--border));
+      }
+      .links a {
+        color: var(--accent);
+      }
+      footer {
+        margin-top: 2rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>GitHub 文件中转</h1>
+      <p class="lead">
+        通过 Cloudflare Pages Function（Workers）携带服务端配置的 <code>GITHUB_TOKEN</code> 调用 GitHub Contents
+        API，将文件写入指定仓库路径，并返回 jsDelivr 与 jsDMirror 的 raw 链接。默认目标仓库为
+        LoosePrince/SocialFlow，可自行修改。
+      </p>
+
+      <form id="upload-form">
+        <label>
+          仓库 owner
+          <input type="text" name="owner" value="LoosePrince" required />
+        </label>
+        <label>
+          仓库名
+          <input type="text" name="repo" value="SocialFlow" required />
+        </label>
+        <label>
+          分支
+          <input type="text" name="branch" value="main" required />
+        </label>
+        <label>
+          仓库内路径
+          <span class="hint">例如 <code>public/cdn/demo.png</code>，勿以 <code>/</code> 开头，勿含 <code>..</code></span>
+          <input type="text" name="path" placeholder="public/cdn/example.bin" required />
+        </label>
+        <label>
+          提交说明（可选）
+          <input type="text" name="message" placeholder="Upload via cf-gh-cdn" />
+        </label>
+        <label>
+          文件
+          <input type="file" name="file" required />
+        </label>
+        <button type="submit" id="submit-btn">上传并生成链接</button>
+      </form>
+
+      <pre id="out" hidden></pre>
+
+      <footer>
+        <p class="links">
+          部署：将 <code>GITHUB_TOKEN</code> 配为 Pages 生产环境 Secret；本地把 <code>.dev.vars.example</code> 复制为
+          <code>.dev.vars</code> 并填写同名字段。然后 <code>npm install</code>、<code>npm run dev</code> 预览，
+          <code>npm run deploy</code> 发布（需 <code>npx wrangler login</code>）。
+        </p>
+        <p>
+          安全提示：Token 仅在 Worker 端使用，浏览器不会收到 PAT；但任意能打开该页面的人都能触发上传写库，请为站点开启
+          Cloudflare Access、IP 限制或仅私有使用，并为 PAT 设置最小仓库权限。
+        </p>
+      </footer>
+    </main>
+
+    <script>
+      const form = document.getElementById("upload-form");
+      const out = document.getElementById("out");
+      const btn = document.getElementById("submit-btn");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        out.hidden = true;
+        btn.disabled = true;
+        const fd = new FormData(form);
+        try {
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: fd,
+          });
+          const text = await res.text();
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch {
+            data = { raw: text };
+          }
+          out.textContent = JSON.stringify(data, null, 2);
+          out.className = res.ok && data.ok ? "ok" : "err";
+          out.hidden = false;
+        } catch (err) {
+          out.textContent = String(err);
+          out.className = "err";
+          out.hidden = false;
+        } finally {
+          btn.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
